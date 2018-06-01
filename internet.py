@@ -7,6 +7,7 @@ import fcntl
 import socket
 import re
 
+# taken from here: https://gist.github.com/pklaus/289646
 def all_interfaces():
     max_possible = 128
     bytes = max_possible * 32
@@ -71,6 +72,8 @@ class Application(tk.Frame):
 
     def connect(self):
         print("Connect called")
+        # Add starting code
+        # See event tracking here: https://stackoverflow.com/questions/3348757/how-to-make-tkinter-repond-events-while-waiting-socket-data
     
     def disconnect(self):
         print("Disconnect called")
