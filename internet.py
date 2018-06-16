@@ -6,6 +6,8 @@ import struct
 import fcntl
 import socket
 import re
+import subprocess
+import os
 
 # taken from here: https://gist.github.com/pklaus/289646
 def all_interfaces():
@@ -25,11 +27,40 @@ def all_interfaces():
         lst.append(name)
     return lst
 
+def get_login_password():
+    temp = { 'username': '', 'password': '' }
+    try :
+        pwd = open(os.path.expanduser('~/.config/internet'),'r')
+        txt = pwd.read().split('\n')
+        for i in txt:
+            j=i.split('=')
+            key=j[0]
+            value=j[1]
+            if key == "LOGIN":
+                temp['username'] = value
+            if key == "PASSWORD":
+                temp['password'] = value
+    except:
+        pass
+    return temp
+
+def save_login_password(login,  password):
+    pass
+
 class Application(tk.Frame):
     def __init__(self, master = None):
         super().__init__(master)
+        self.passwd = tk.StringVar()
+        self.username = tk.StringVar()
+        self.connect_process = None
+        self.disconnect_process = None
+        self.widget = master
+        #
         self.pack(expand=True,fill="both")
         self.create_widgets()
+        t = get_login_password()
+        self.username.set(t['username'])
+        self.passwd.set(t['password'])
         self.after(1000, self.connection_check)
 
     def create_widgets(self):
@@ -41,9 +72,9 @@ class Application(tk.Frame):
             self.columnconfigure(i,weight=0)
         self.columnconfigure(1,weight=1)
         self.label_username=tk.Label(self,text="Username:")
-        self.entry_username=tk.Entry(self)
+        self.entry_username=tk.Entry(self,  textvariable=self.username)
         self.label_password=tk.Label(self,text="Password:")
-        self.entry_password=tk.Entry(self)
+        self.entry_password=tk.Entry(self,  textvariable=self.passwd,  show="*")
         self.button_connect=tk.Button(self,text="Connect",command=self.connect)
         self.button_disconnect=tk.Button(self,text="Disconnect",command=self.disconnect)
         self.label_interface=tk.Label(self,text="Connection:")
@@ -63,21 +94,44 @@ class Application(tk.Frame):
     def connection_check(self):
         r = re.compile('ppp[0-9]*')
         if any(r.match(line) for line in all_interfaces()):
-            print("Connected")
+            #print("Connected")
             self.label_onlinestatus['fg']="green"
+            self.label_onlinestatus['text']="Online"
         else:
-            print("Disconnected")
+            #print("Disconnected")
             self.label_onlinestatus['fg']="red"
+            self.label_onlinestatus['text']="Offline"
         self.after(1000, self.connection_check)
 
     def connect(self):
         print("Connect called")
+        print(self.username.get(),self.passwd.get())
         # Add starting code
+        if self.connect_process:
+            self.connect_process.kill()
+            self.deletefilehandler(self.connect_process.stdout)
+            self.deletefilehandler(self.connect_process.stderr)
+            self.connect_process = None 
+        self.connect_process = subprocess.Popen(['pon','internet', 'user', self.username.get(), 'password',  self.passwd.get(), 'nodetach',  'debug',  'passive'],stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        self.widget.tk.createfilehandler(self.connect_process.stdout, tk.READABLE, self.dataavailable)
+        self.widget.tk.createfilehandler(self.connect_process.stderr, tk.READABLE, self.dataavailable)            
         # See event tracking here: https://stackoverflow.com/questions/3348757/how-to-make-tkinter-repond-events-while-waiting-socket-data
+        # should first start /usr/sbin/pptp 172.16.1.254 --nolaunchpppd and kill it after 3 seconds, then kill it
+        # then start /usr/bin/pon internet user "username" password "passwd" nodetach debug passive
+ 
     
     def disconnect(self):
         print("Disconnect called")
-
+        print(self.username.get(),self.passwd.get())
+        # then start /usr/bin/poff internet
+        if self.disconnect_process:
+            self.disconnect_process.kill()
+            self.widget.tk.deletefilehandler(self.disconnect_process.stdout)
+            self.widget.tk.deletefilehandler(self.disconnect_process.stderr)
+            self.disconnect_process = None
+        self.disconnect_process = subprocess.Popen(['poff','internet'],stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        self.widget.tk.createfilehandler(self.disconnect_process.stdout, tk.READABLE, self.dataavailable)
+        self.widget.tk.createfilehandler(self.disconnect_process.stderr, tk.READABLE, self.dataavailable)
 
 root = tk.Tk()
 root.grid_columnconfigure(0,weight=1)
