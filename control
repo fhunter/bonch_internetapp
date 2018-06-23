@@ -1,0 +1,9 @@
+Package: internetapp
+Architecture: all
+Version: 0.0.1
+Maintainer: Nikolay Zamotaev <fhunter@eniac.dcti.sut.ru>
+Depends: ppp, pptp-linux, python3, python3-tk
+Priority: optional
+Homepage: https://github.com/fhunter/bonch_internetapp/
+Description: Internet script for PIVT department
+

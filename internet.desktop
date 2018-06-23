@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Internet
+Name[ru]=Интернет
+Exec=/usr/bin/internet.py
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=applications-internet
+Categories=Network;Internet
